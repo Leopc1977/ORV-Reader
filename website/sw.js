@@ -1,4 +1,4 @@
-const CACHE_NAME = "orv-reader-cache-v3"
+const CACHE_NAME = "orv-reader-cache-v4"
 
 const filesToCache = [
     // -- Core files --

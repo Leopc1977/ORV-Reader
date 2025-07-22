@@ -424,7 +424,20 @@ document.addEventListener('DOMContentLoaded', function () {
             localStorage.setItem(scrollKey, window.scrollY);
         } catch (e) { console.error('Error saving scroll:', e); }
     }
-    window.addEventListener('scroll', saveScrollPosition);
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    window.addEventListener('scroll', debounce(saveScrollPosition, 500));
     window.addEventListener('beforeunload', saveScrollPosition);
 });
 

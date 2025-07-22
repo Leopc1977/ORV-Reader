@@ -417,7 +417,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if (savedScroll !== null) {
             window.scrollTo(0, parseInt(savedScroll, 10));
         }
-    } catch (e) { console.error('Error restoring scroll:', e); }
+    } catch (e) {
+        console.error('Error restoring scroll:', e);
+    }
 
     function saveScrollPosition() {
         try {

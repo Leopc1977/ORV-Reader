@@ -1,4 +1,4 @@
-const CACHE_NAME = "orv-reader-cache-v2"
+const CACHE_NAME = "orv-reader-cache-v3"
 
 const filesToCache = [
     // -- Core files --
@@ -11,16 +11,16 @@ const filesToCache = [
     '/stories/orv/index.html',
     '/stories/cont/index.html',
     '/stories/side/index.html',
-  
+
     // -- CSS styles --
     '/assets/information.css',
     '/assets/reader.css',
     '/assets/reader-rich-text.css',
-  
+
     // -- JS scripts --
     '/assets/information.js',
     '/assets/reader.js',
-  
+
     // -- Images and media --
     '/assets/covers/orv.webp',
     '/assets/covers/cont.webp',
@@ -57,19 +57,25 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch: serve cached content when available, else fetch from network
+// Fetch: try network first, fall back to cache (or 404 page for navigations)
 self.addEventListener('fetch', event => {
-    event.respondWith(
-        caches.match(event.request).then(response => {
-            if (response) {
-                return response;
-            }
-            return fetch(event.request).catch(() => {
-                if (event.request.mode === 'navigate') {
-                    return caches.match('/404.html');
-                }
-                return Promise.reject('no-match-in-cache-and-no-network');
-            });
-        })
-    );
+    event.respondWith(handleFetch(event));
 });
+
+async function handleFetch(event) {
+    try {
+        const networkResponse = await fetch(event.request);
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(event.request, networkResponse.clone());
+        return networkResponse;
+    } catch {
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+        if (event.request.mode === 'navigate') {
+            return caches.match('/404.html');
+        }
+        return Promise.reject('No cache match and no network available');
+    }
+}

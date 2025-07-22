@@ -19,7 +19,7 @@ const stories = {
 let isCaching = false;
 
 async function cacheAllChapters(progressCallback) {
-    const cache = await caches.open("orv-reader-cache-v2");
+    const cache = await caches.open("orv-reader-cache-v3");
 
     const total = Object.values(stories)
         .reduce((sum, story) => sum + (story.end - story.start + 1), 0);

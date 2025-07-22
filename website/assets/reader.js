@@ -440,7 +440,9 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             localStorage.setItem(SCROLL_HISTORY_KEY, JSON.stringify(history));
-        } catch (e) { console.error('Error saving scroll:', e); }
+        } catch (e) {
+            console.error('Error saving scroll:', e);
+        }
     }
 
     function debounce(func, wait) {

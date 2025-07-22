@@ -85,7 +85,7 @@ setTimeout(() => {
     let type = scriptElement.dataset.type;
     localStorage.setItem("lastread", String(index))
     localStorage.setItem("lasttype", String(type))
-}, 1000);
+}, 3000);
 
 function classChangeTheme(elementClass, elemetTheme) {
     let element = document.getElementsByClassName(elementClass)

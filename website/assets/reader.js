@@ -85,7 +85,7 @@ setTimeout(() => {
     let type = scriptElement.dataset.type;
     localStorage.setItem("lastread", String(index))
     localStorage.setItem("lasttype", String(type))
-}, 3000);
+}, 10000);
 
 function classChangeTheme(elementClass, elemetTheme) {
     let element = document.getElementsByClassName(elementClass)
@@ -422,6 +422,22 @@ document.addEventListener('DOMContentLoaded', function () {
     function saveScrollPosition() {
         try {
             localStorage.setItem(scrollKey, window.scrollY);
+
+            const SCROLL_HISTORY_KEY = `scroll_history_${type}`;
+            const MAX_HISTORY_SIZE = 5;
+
+            let history = JSON.parse(localStorage.getItem(SCROLL_HISTORY_KEY)) || [];
+
+            history = history.filter(key => key !== scrollKey);
+
+            history.unshift(scrollKey);
+
+            while (history.length > MAX_HISTORY_SIZE) {
+                const oldestKey = history.pop();
+                localStorage.removeItem(oldestKey);
+            }
+
+            localStorage.setItem(SCROLL_HISTORY_KEY, JSON.stringify(history));
         } catch (e) { console.error('Error saving scroll:', e); }
     }
 

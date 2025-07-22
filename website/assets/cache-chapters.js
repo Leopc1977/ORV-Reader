@@ -10,10 +10,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-import config from "./config.js";
-
-const CACHE_NAME = config.CACHE_NAME;
-
 const stories = {
     orv: { start: 1, end: 551 },
     cont: { start: 553, end: 908 },
@@ -23,7 +19,7 @@ const stories = {
 let isCaching = false;
 
 async function cacheAllChapters(progressCallback) {
-    const cache = await caches.open(CACHE_NAME);
+    const cache = await caches.open("orv-reader-cache-v1");
 
     const total = Object.values(stories)
         .reduce((sum, story) => sum + (story.end - story.start + 1), 0);

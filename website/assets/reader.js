@@ -85,7 +85,7 @@ setTimeout(() => {
     let type = scriptElement.dataset.type;
     localStorage.setItem("lastread", String(index))
     localStorage.setItem("lasttype", String(type))
-}, 60000);
+}, 1000);
 
 function classChangeTheme(elementClass, elemetTheme) {
     let element = document.getElementsByClassName(elementClass)
@@ -402,6 +402,30 @@ document.addEventListener('DOMContentLoaded', function () {
     settingsForm.addEventListener('reset', function (event) {
         setTimeout(applySettings, 0);
     });
+
+    const scriptElement = document.getElementById('main-script');
+    if (!scriptElement) {
+        console.error("Element #main-script not found.");
+        return;
+    }
+    const index = scriptElement.dataset.index;
+    const type = scriptElement.dataset.type;
+    const scrollKey = `scrollY_${type}_${index}`;
+
+    try {
+        const savedScroll = localStorage.getItem(scrollKey);
+        if (savedScroll !== null) {
+            window.scrollTo(0, parseInt(savedScroll, 10));
+        }
+    } catch (e) { console.error('Error restoring scroll:', e); }
+
+    function saveScrollPosition() {
+        try {
+            localStorage.setItem(scrollKey, window.scrollY);
+        } catch (e) { console.error('Error saving scroll:', e); }
+    }
+    window.addEventListener('scroll', saveScrollPosition);
+    window.addEventListener('beforeunload', saveScrollPosition);
 });
 
 

@@ -1,9 +1,10 @@
-const CACHE_NAME = "orv-reader-cache-v1"
+const ASSETS_CACHE = "orv-assets-cache-v1"; // Do not change unless "filesToCache" is modified. 
+const CHAPTER_CACHE = "orv-chapter-cache"; // Do not change unless the chapter structure is modified.
 
 const filesToCache = [
     // -- Core files --
     '/', // Homepage
-    '/404.html', // 404 page
+    '/404.html', // 404 page fallback
     '/assets/manifest.json',
     '/assets/favicon.ico',
 
@@ -28,7 +29,7 @@ const filesToCache = [
     '/assets/od-stigma.webp',
 ];
 
-// Installation: pre-cache essential files
+// Install event: Pre-cache essential files for offline usage
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(CACHE_NAME)
@@ -36,46 +37,54 @@ self.addEventListener('install', event => {
                 console.log('Cache opened');
                 return cache.addAll(filesToCache);
             })
-            .then(() => self.skipWaiting())
+            .then(() => self.skipWaiting()) // Activate worker immediately after installation
     );
 });
 
-// Activation: delete old caches
+// Activate event: Clean up old caches
 self.addEventListener('activate', event => {
-    const cacheWhitelist = [CACHE_NAME];
+    const cacheWhitelist = [ASSETS_CACHE, CHAPTER_CACHE];
+
     event.waitUntil(
         caches.keys().then(cacheNames =>
             Promise.all(
                 cacheNames.map(name => {
                     if (!cacheWhitelist.includes(name)) {
+                        // Delete caches that are not in whitelist
                         return caches.delete(name);
                     }
                     return null;
                 })
             )
-        ).then(() => self.clients.claim())
+        ).then(() => self.clients.claim()) // Take control of clients immediately
     );
 });
 
-// Fetch: try network first, fall back to cache (or 404 page for navigations)
+// Fetch event: Use Network First strategy
 self.addEventListener('fetch', event => {
-    event.respondWith(handleFetch(event));
+    if (event.request.method !== 'GET') return;
+
+    event.respondWith(
+        fetch(event.request)
+            .then(networkResponse => {
+                // Only cache valid responses (status 200 and basic type)
+                if (networkResponse.ok && networkResponse.type === 'basic') {
+                    caches.open(CACHE_NAME).then(cache => {
+                        cache.put(event.request, networkResponse.clone());
+                    });
+                }
+                return networkResponse;
+            })
+            .catch(async () => {
+                const cached = await caches.match(event.request);
+                if (cached) return cached;
+
+                if (event.request.mode === 'navigate') {
+                    return caches.match('/404.html');
+                }
+
+                return Response.error(); // Or your own fallback
+            })
+    );
 });
 
-async function handleFetch(event) {
-    try {
-        const networkResponse = await fetch(event.request);
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(event.request, networkResponse.clone());
-        return networkResponse;
-    } catch {
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) {
-            return cachedResponse;
-        }
-        if (event.request.mode === 'navigate') {
-            return caches.match('/404.html');
-        }
-        return Promise.reject('No cache match and no network available');
-    }
-}

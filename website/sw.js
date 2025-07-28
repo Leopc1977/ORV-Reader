@@ -97,6 +97,7 @@ self.addEventListener('fetch', event => {
                 if (networkResponse.ok && networkResponse.type === 'basic') {
                     const responseClone = networkResponse.clone();
                     const isChapter = formattedUrl.pathname.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
+
                     const cacheName = isChapter ? CHAPTER_CACHE : ASSETS_CACHE;
 
                     caches.open(cacheName).then(cache => {

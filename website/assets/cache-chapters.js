@@ -18,9 +18,18 @@ function updateLocalProgress(story, chapterId) {
 }
 
 function updateProgressUI({ done, total }) {
-    const progressBar = document.getElementById('cacheProgress');
-    progressBar.value = done / total;
-    progressBar.textContent = `${Math.round((done / total) * 100)}%`;
+    const container = document.getElementById('cachingContainer');
+    let cacheProgress = document.getElementById('cacheProgress')
+    if (!cacheProgress) {
+        cacheProgress = document.createElement('progress');
+        cacheProgress.id = 'cacheProgress';
+        cacheProgress.max = 1;
+        cacheProgress.value = 0;
+        container.appendChild(cacheProgress);
+    }
+
+    cacheProgress.value = done / total;
+    cacheProgress.textContent = `${Math.round((done / total) * 100)}%`;
 }
 
 navigator.serviceWorker.addEventListener('message', event => {

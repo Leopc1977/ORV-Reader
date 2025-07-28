@@ -9,6 +9,7 @@ const filesToCache = [
     '/assets/favicon.ico',
 
     // -- Main story pages --
+    '/stories.html',
     '/stories/orv/index.html',
     '/stories/cont/index.html',
     '/stories/side/index.html',

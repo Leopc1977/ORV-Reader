@@ -65,24 +65,30 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
+    const url = new URL(event.request.url);
+
+    const isChapterWithoutHtml = url.pathname.match(/\/stories\/[^/]+\/read\/ch_\d+$/);
+    const formattedUrl = isChapterWithoutHtml
+        ? new URL(url.href + '.html')
+        : url;
+
     event.respondWith(
-        fetch(event.request)
+        fetch(formattedUrl)
             .then(networkResponse => {
                 if (networkResponse.ok && networkResponse.type === 'basic') {
                     const responseClone = networkResponse.clone();
-                    const url = event.request.url;
-
-                    const isChapter = url.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
                     const cacheName = isChapter ? CHAPTER_CACHE : ASSETS_CACHE;
+                    const url = formattedUrl.href;
+                    const isChapter = url.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
 
                     caches.open(cacheName).then(cache => {
-                        cache.put(event.request, responseClone);
+                        cache.put(maybeHtmlUrl.href, responseClone);
                     });
                 }
                 return networkResponse;
             })
             .catch(async () => {
-                const cached = await caches.match(event.request);
+                const cached = await caches.match(formattedUrl.href);
                 if (cached) return cached;
 
                 if (event.request.mode === 'navigate') {

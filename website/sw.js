@@ -1,5 +1,5 @@
-const ASSETS_CACHE = "orv-assets-cache-v1"; // Do not change unless "filesToCache" is modified. 
-const CHAPTER_CACHE = "orv-chapter-cache"; // Do not change unless the chapter structure is modified.
+const ASSETS_CACHE = "orv-assets-cache-v1"; // Do not change unless "filesToCache" is modified.
+const CHAPTER_CACHE = "orv-chapter-cache-v1";  // Do not change unless chapter structure changes.
 
 const filesToCache = [
     // -- Core files --
@@ -29,15 +29,15 @@ const filesToCache = [
     '/assets/od-stigma.webp',
 ];
 
-// Install event: Pre-cache essential files for offline usage
+// Install event: Pre-cache static assets
 self.addEventListener('install', event => {
     event.waitUntil(
-        caches.open(CACHE_NAME)
+        caches.open(ASSETS_CACHE)
             .then(cache => {
-                console.log('Cache opened');
+                console.log('[SW] Caching static assets');
                 return cache.addAll(filesToCache);
             })
-            .then(() => self.skipWaiting()) // Activate worker immediately after installation
+            .then(() => self.skipWaiting())
     );
 });
 
@@ -50,27 +50,32 @@ self.addEventListener('activate', event => {
             Promise.all(
                 cacheNames.map(name => {
                     if (!cacheWhitelist.includes(name)) {
-                        // Delete caches that are not in whitelist
+                        console.log('[SW] Deleting old cache:', name);
                         return caches.delete(name);
                     }
                     return null;
                 })
             )
-        ).then(() => self.clients.claim()) // Take control of clients immediately
+        ).then(() => self.clients.claim())
     );
 });
 
-// Fetch event: Use Network First strategy
+// Fetch event: Network First strategy
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
 
     event.respondWith(
         fetch(event.request)
             .then(networkResponse => {
-                // Only cache valid responses (status 200 and basic type)
                 if (networkResponse.ok && networkResponse.type === 'basic') {
-                    caches.open(CACHE_NAME).then(cache => {
-                        cache.put(event.request, networkResponse.clone());
+                    const responseClone = networkResponse.clone();
+                    const url = event.request.url;
+
+                    const isChapter = url.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
+                    const cacheName = isChapter ? CHAPTER_CACHE : ASSETS_CACHE;
+
+                    caches.open(cacheName).then(cache => {
+                        cache.put(event.request, responseClone);
                     });
                 }
                 return networkResponse;
@@ -83,8 +88,64 @@ self.addEventListener('fetch', event => {
                     return caches.match('/404.html');
                 }
 
-                return Response.error(); // Or your own fallback
+                return Response.error();
             })
     );
 });
 
+const stories = {
+    orv: { start: 1, end: 551 },
+    cont: { start: 553, end: 908 },
+    side: { start: 1, end: 4 }
+};
+
+self.addEventListener('message', async event => {
+    if (event.data?.action === 'startCachingChapters') {
+      cacheChaptersInBackground();
+    }
+});
+
+async function cacheChaptersInBackground() {
+    const cache = await caches.open(CHAPTER_CACHE);
+
+    const chaptersToCache = [];
+    for (const story in stories) {
+        const { start, end } = stories[story];
+        for (let i = start; i <= end; i++) {
+            chaptersToCache.push({ story, chapterId: i });
+        }
+    }
+
+    const total = chaptersToCache.length;
+    let done = 0;
+    let success = 0;
+
+    for (const { story, chapterId } of chaptersToCache) {
+        const url = `stories/${story}/read/ch_${chapterId}.html`;
+        try {
+            const res = await fetch(url);
+            if (res.ok) {
+                await cache.put(url, res.clone());
+                success++;
+                console.log(url, "cached")
+                broadcastProgress({ story, chapterId, done, total, success });
+            }
+        } catch (_) { }
+
+        done++;
+        broadcastProgress({ story, chapterId, done, total, success });
+    }
+}
+
+function broadcastProgress({ story, chapterId, done, total, success }) {
+    self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+            client.postMessage({
+                type: 'chapter-cached',
+                story,
+                chapterId,
+                progress: { done, total, success }
+            });
+        });
+    });
+}

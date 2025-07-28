@@ -9,25 +9,44 @@ const filesToCache = [
     '/assets/favicon.ico',
 
     // -- Main story pages --
-    '/stories.html',
+    '/stories/index.html',
     '/stories/orv/index.html',
     '/stories/cont/index.html',
     '/stories/side/index.html',
 
     // -- CSS styles --
     '/assets/information.css',
+    '/assets/landing.css',
+    '/assets/stories.css',
     '/assets/reader.css',
     '/assets/reader-rich-text.css',
 
     // -- JS scripts --
     '/assets/information.js',
     '/assets/reader.js',
+    '/assets/cache-chapters.js',
 
-    // -- Images and media --
+    // -- Icons --
+    '/assets/icon512_maskable.png',
+    '/assets/icon512_rounded.png',
+
+    // -- Background images --
+    '/assets/background-stars.jpg',
+    '/assets/background-stars-mobile.jpg',
+
+    // -- Story covers --
     '/assets/covers/orv.webp',
     '/assets/covers/cont.webp',
     '/assets/covers/side.webp',
     '/assets/od-stigma.webp',
+
+    // -- Metadata files --
+    '/meta/orv.json',
+    '/meta/orv_meta.json',
+    '/meta/cont.json',
+    '/meta/cont_meta.json',
+    '/meta/side.json',
+    '/meta/side_meta.json',
 ];
 
 // Install event: Pre-cache static assets
@@ -77,22 +96,21 @@ self.addEventListener('fetch', event => {
             .then(networkResponse => {
                 if (networkResponse.ok && networkResponse.type === 'basic') {
                     const responseClone = networkResponse.clone();
+                    const isChapter = formattedUrl.pathname.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
                     const cacheName = isChapter ? CHAPTER_CACHE : ASSETS_CACHE;
-                    const url = formattedUrl.href;
-                    const isChapter = url.match(/\/stories\/[^/]+\/read\/ch_\d+\.html$/);
 
                     caches.open(cacheName).then(cache => {
-                        cache.put(maybeHtmlUrl.href, responseClone);
+                        cache.put(formattedUrl.href, responseClone);
                     });
                 }
                 return networkResponse;
             })
             .catch(async () => {
-                const cached = await caches.match(formattedUrl.href);
-                if (cached) return cached;
+                const cachedResponse = await caches.match(formattedUrl.href);
+                if (cachedResponse) return cachedResponse;
 
                 if (event.request.mode === 'navigate') {
-                    return caches.match('/404.html');
+                    return await caches.match('/404.html');
                 }
 
                 return Response.error();
